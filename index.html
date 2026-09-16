@@ -472,7 +472,9 @@ table td{color:#160b0b!important;}
     <button class="tab" onclick="showTab('lowstock',this)">🚨 Low Stock</button>
     <button class="tab" onclick="showTab('categories',this)">🗂 Categories</button>
     <button class="tab" onclick="showTab('backup',this)">💾 Backup</button>
+    <button class="tab" onclick="showTab('settings',this)">⚙️ Settings</button>
   </nav>
+  <button class="btn btn-outline btn-sm" id="logout-btn" onclick="lockApp()" style="margin-right:8px" title="Lock / Logout">🔒 Logout</button>
   <button class="toggle-btn" id="toggle-btn" onclick="toggleHeader()" title="Show/Hide Header">⋮</button>
 </div>
 
@@ -582,11 +584,10 @@ table td{color:#160b0b!important;}
     <div class="stat-card blue"><div class="stat-label">Total Given</div><div class="stat-value" id="stat-given">₹0</div></div>
   </div>
   <div class="credit-bar">
-    <input type="text" placeholder="Search…" id="cr-search" oninput="renderCredits()" style="max-width:240px">
-    <select id="cr-filter" onchange="renderCredits()"><option value="">All</option><option value="credit">Credit</option><option value="payment">Payment</option></select>
+    <input type="text" placeholder="Search customer…" id="cr-search" oninput="renderCredits()" style="max-width:280px">
   </div>
   <div class="panel" style="padding:0"><div class="table-wrap"><table>
-    <thead><tr><th>Date</th><th>Customer</th><th>Type</th><th>Amount</th><th>Bill</th><th>Balance</th><th>Note</th><th>Del</th></tr></thead>
+    <thead><tr><th>S.No</th><th>Customer</th><th>Outstanding</th></tr></thead>
     <tbody id="cr-tbody"></tbody>
   </table></div></div>
   <div class="panel" id="cr-form" style="display:none;border-color:var(--gold)">
@@ -607,6 +608,23 @@ table td{color:#160b0b!important;}
       </div>
     </div>
     <div class="flex-end"><button class="btn btn-outline" onclick="closeCrForm()">Cancel</button><button class="btn btn-gold" onclick="savePayment()">Save Payment</button></div>
+  </div>
+</div>
+
+<!-- CREDIT HISTORY MODAL -->
+<div class="modal-overlay" id="cr-history-modal">
+  <div style="background:var(--card);border:1px solid var(--accent);border-radius:14px;max-width:600px;width:94%;max-height:82vh;overflow:auto;box-shadow:0 8px 40px rgba(0,0,0,0.7)">
+    <div style="background:var(--card2);padding:13px 18px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:2">
+      <span style="font-family:'Playfair Display',serif;color:var(--accent2);font-size:0.98rem">📒 <span id="crh-name"></span> — Outstanding: <span id="crh-out" class="mono text-red"></span></span>
+      <span onclick="closeCustCreditHistory()" style="cursor:pointer;color:var(--text3);font-size:1.1rem">✕</span>
+    </div>
+    <div style="padding:14px 18px">
+      <div class="table-wrap"><table>
+        <thead><tr><th>Date</th><th>Type</th><th>Amount</th><th>Bill</th><th>Balance</th><th>Note</th><th>Del</th></tr></thead>
+        <tbody id="crh-tbody"></tbody>
+      </table></div>
+      <div class="flex-end" style="margin-top:12px"><button class="btn btn-gold" onclick="closeCustCreditHistory();openCrForm(crHistCustId)">+ Record Payment</button></div>
+    </div>
   </div>
 </div>
 
@@ -906,6 +924,55 @@ table td{color:#160b0b!important;}
   </div>
 </div>
 
+<!-- SETTINGS PAGE -->
+<div id="page-settings" class="page">
+  <h2 style="font-family:'Playfair Display';color:var(--accent2);margin-bottom:18px">⚙️ Settings</h2>
+  <div class="two-col">
+    <div class="panel" style="border-color:var(--accent)">
+      <div class="panel-title">🔑 App Password</div>
+      <p style="font-size:0.83rem;color:var(--text2);margin-bottom:14px;line-height:1.6">
+        Set or change the password used to lock/unlock this app. Leave current password blank if none is set yet.
+      </p>
+      <div class="form-row single"><div class="field"><label>Current Password</label><input type="password" id="set-pass-old" placeholder="Leave blank if none set"></div></div>
+      <div class="form-row"><div class="field"><label>New Password *</label><input type="password" id="set-pass-new"></div><div class="field"><label>Confirm New Password *</label><input type="password" id="set-pass-confirm"></div></div>
+      <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="changeAppPassword()">💾 Save Password</button>
+    </div>
+    <div class="panel" style="border-color:var(--gold)">
+      <div class="panel-title">🧾 Petty Cash</div>
+      <p style="font-size:0.83rem;color:var(--text2);margin-bottom:10px;line-height:1.6">Track small day-to-day cash in/out (tea, auto fare, stationery, etc.)</p>
+      <div style="background:var(--card2);border-radius:8px;padding:10px 12px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:0.8rem;color:var(--text3)">Current Petty Cash Balance</span>
+        <span class="mono text-green" id="pc-balance" style="font-size:1.1rem;font-weight:700">₹0</span>
+      </div>
+      <div class="form-row">
+        <div class="field"><label>Type</label><select id="pc-type"><option value="in">Cash In</option><option value="out">Cash Out</option></select></div>
+        <div class="field"><label>Amount (₹) *</label><input type="number" id="pc-amt"></div>
+      </div>
+      <div class="form-row single"><div class="field"><label>Note</label><input id="pc-note" placeholder="e.g. Tea, Auto fare"></div></div>
+      <button class="btn btn-gold" style="width:100%;justify-content:center;margin-bottom:12px" onclick="addPettyCash()">+ Add Entry</button>
+      <div class="table-wrap" style="max-height:220px;overflow-y:auto"><table>
+        <thead><tr><th>Date</th><th>Type</th><th>Amount</th><th>Note</th><th>Del</th></tr></thead>
+        <tbody id="pc-tbody"></tbody>
+      </table></div>
+    </div>
+  </div>
+
+  <div class="panel" style="border-color:var(--accent2);margin-top:16px">
+    <div class="panel-title">🏦 Opening &amp; Closing Balance</div>
+    <p style="font-size:0.83rem;color:var(--text2);margin-bottom:12px;line-height:1.6">Record cash drawer opening and closing balance for each day.</p>
+    <div class="form-row three">
+      <div class="field"><label>Date</label><input type="date" id="ob-date"></div>
+      <div class="field"><label>Opening Balance (₹)</label><input type="number" id="ob-open"></div>
+      <div class="field"><label>Closing Balance (₹)</label><input type="number" id="ob-close"></div>
+    </div>
+    <button class="btn btn-primary" style="width:100%;justify-content:center;margin-bottom:12px" onclick="saveDayBalance()">💾 Save Day Balance</button>
+    <div class="table-wrap" style="max-height:240px;overflow-y:auto"><table>
+      <thead><tr><th>Date</th><th>Opening</th><th>Closing</th><th>Difference</th><th>Del</th></tr></thead>
+      <tbody id="ob-tbody"></tbody>
+    </table></div>
+  </div>
+</div>
+
 </div><!-- /main -->
 
 <!-- RECEIPT MODAL -->
@@ -1119,9 +1186,22 @@ table td{color:#160b0b!important;}
 </div>
 
 <div class="toast" id="toast"></div>
+
+<!-- LOCK / LOGIN SCREEN -->
+<div id="lock-screen" style="display:none;position:fixed;inset:0;z-index:9999;background:linear-gradient(135deg,#8b0000 0%,#b71c1c 48%,#8f1010 100%);align-items:center;justify-content:center">
+  <div style="background:var(--card);border:1px solid var(--gold);border-radius:16px;max-width:360px;width:92%;padding:28px 26px;box-shadow:0 10px 50px rgba(0,0,0,0.6);text-align:center">
+    <div style="font-size:2rem;margin-bottom:6px">🔒</div>
+    <div id="lock-title" style="font-family:'Playfair Display',serif;color:var(--accent2);font-size:1.15rem;margin-bottom:4px">Gulshan Mini Mart</div>
+    <div id="lock-sub" style="font-size:0.8rem;color:var(--text3);margin-bottom:18px">Enter password to continue</div>
+    <input type="password" id="lock-pass" placeholder="Password" style="width:100%;background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:11px 13px;color:var(--text);font-size:0.95rem;outline:none;margin-bottom:10px;text-align:center" onkeydown="if(event.key==='Enter')attemptUnlock()">
+    <input type="password" id="lock-pass2" placeholder="Confirm password" style="display:none;width:100%;background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:11px 13px;color:var(--text);font-size:0.95rem;outline:none;margin-bottom:10px;text-align:center" onkeydown="if(event.key==='Enter')attemptUnlock()">
+    <div id="lock-error" style="color:var(--red);font-size:0.78rem;margin-bottom:10px;min-height:16px"></div>
+    <button class="btn btn-gold" style="width:100%;justify-content:center" onclick="attemptUnlock()" id="lock-btn">Unlock</button>
+  </div>
+</div>
 <script>
 // ── DATA STORE ─────────────────────────────────────────────────────────
-var D = {customers:[],products:[],bills:[],credits:[],categories:[],purchases:[],suppliers:[],nextBill:1001,nextCust:1,nextProd:1,nextCat:1,nextPurchase:1001};
+var D = {customers:[],products:[],bills:[],credits:[],categories:[],purchases:[],suppliers:[],pettyCash:[],balances:[],settings:{password:''},nextBill:1001,nextCust:1,nextProd:1,nextCat:1,nextPurchase:1001,nextPetty:1,nextBalance:1};
 var cart = [];
 var lsThresh = parseInt(localStorage.getItem('gmm_lst')||'10');
 var activeCat = '';
@@ -1147,6 +1227,11 @@ function load(){
       if(!D.purchases) D.purchases=[];
       if(!D.suppliers) D.suppliers=[];
       if(!D.nextPurchase) D.nextPurchase=1001;
+      if(!D.pettyCash) D.pettyCash=[];
+      if(!D.balances) D.balances=[];
+      if(!D.settings) D.settings={password:''};
+      if(!D.nextPetty) D.nextPetty=1;
+      if(!D.nextBalance) D.nextBalance=1;
     }catch(e){
       console.log('load error', e);
     }
@@ -2499,7 +2584,152 @@ function init(){
   renderCategoryTable();
   updateCrStats();
   updateBell();
+  renderPettyCash();
+  renderDayBalances();
+  showLockScreenIfNeeded();
   setTimeout(function(){ var i=document.getElementById('bc-input'); if(i) i.focus(); },300);
+}
+
+// ── LOGIN / LOGOUT ────────────────────────────────────────────────────
+var appUnlocked = false;
+function showLockScreenIfNeeded(){
+  var pass = D.settings && D.settings.password;
+  var scr = document.getElementById('lock-screen');
+  var pass2El = document.getElementById('lock-pass2');
+  var titleEl = document.getElementById('lock-title');
+  var subEl = document.getElementById('lock-sub');
+  var btnEl = document.getElementById('lock-btn');
+  if(!pass){
+    // No password set yet — force a one-time setup, but allow using the app right away too.
+    appUnlocked = true;
+    scr.style.display='none';
+    return;
+  }
+  appUnlocked = false;
+  scr.style.display='flex';
+  pass2El.style.display='none';
+  titleEl.textContent='Gulshan Mini Mart';
+  subEl.textContent='Enter password to continue';
+  btnEl.textContent='Unlock';
+  document.getElementById('lock-pass').value='';
+  document.getElementById('lock-error').textContent='';
+  setTimeout(function(){ var p=document.getElementById('lock-pass'); if(p) p.focus(); },150);
+}
+function attemptUnlock(){
+  var pass = D.settings && D.settings.password;
+  var entered = document.getElementById('lock-pass').value;
+  if(entered === pass){
+    appUnlocked = true;
+    document.getElementById('lock-screen').style.display='none';
+  } else {
+    document.getElementById('lock-error').textContent='Incorrect password. Try again.';
+    document.getElementById('lock-pass').value='';
+    document.getElementById('lock-pass').focus();
+  }
+}
+function lockApp(){
+  if(!D.settings || !D.settings.password){
+    showToast('Set a password first in Settings to enable Logout/Lock.','error');
+    showTab('settings', document.querySelector('.tab[onclick*="settings"]'));
+    return;
+  }
+  showLockScreenIfNeeded();
+}
+function changeAppPassword(){
+  var oldP = document.getElementById('set-pass-old').value;
+  var newP = document.getElementById('set-pass-new').value;
+  var confirmP = document.getElementById('set-pass-confirm').value;
+  var current = (D.settings && D.settings.password) || '';
+  if(current && oldP !== current){ showToast('Current password is incorrect.','error'); return; }
+  if(!newP || newP.length<4){ showToast('New password must be at least 4 characters.','error'); return; }
+  if(newP !== confirmP){ showToast('New password and confirmation do not match.','error'); return; }
+  if(!D.settings) D.settings={};
+  D.settings.password = newP;
+  save();
+  document.getElementById('set-pass-old').value='';
+  document.getElementById('set-pass-new').value='';
+  document.getElementById('set-pass-confirm').value='';
+  showToast('Password saved! You can use it next time the app is locked.');
+}
+
+// ── PETTY CASH ────────────────────────────────────────────────────────
+function pettyBalance(){
+  return (D.pettyCash||[]).reduce(function(s,p){ return s + (p.type==='in'?p.amount:-p.amount); },0);
+}
+function renderPettyCash(){
+  var bal = pettyBalance();
+  var balEl = document.getElementById('pc-balance');
+  if(balEl){ balEl.textContent = fmt(bal); balEl.className = 'mono ' + (bal>=0?'text-green':'text-red'); }
+  var tbody = document.getElementById('pc-tbody');
+  if(!tbody) return;
+  var list = (D.pettyCash||[]).slice().sort(function(a,b){ return new Date(b.date)-new Date(a.date) || b.id-a.id; });
+  if(!list.length){ tbody.innerHTML='<tr><td colspan="5" class="empty-state">No entries yet</td></tr>'; return; }
+  var h='';
+  list.forEach(function(p){
+    h+='<tr><td class="mono" style="font-size:0.78rem">'+esc(p.date)+'</td>';
+    h+='<td>'+(p.type==='in'?'<span class="tag tag-green">Cash In</span>':'<span class="tag tag-red">Cash Out</span>')+'</td>';
+    h+='<td class="mono'+(p.type==='in'?' text-green':' text-red')+'">'+(p.type==='in'?'+':'-')+fmt(p.amount)+'</td>';
+    h+='<td style="font-size:0.78rem;color:var(--text3)">'+esc(p.note||'-')+'</td>';
+    h+='<td><button class="btn btn-danger btn-sm" onclick="delPettyCash('+p.id+')">Del</button></td></tr>';
+  });
+  tbody.innerHTML=h;
+}
+function addPettyCash(){
+  var type = document.getElementById('pc-type').value;
+  var amt = parseFloat(document.getElementById('pc-amt').value);
+  var note = document.getElementById('pc-note').value.trim();
+  if(!amt || amt<=0){ showToast('Enter a valid amount.','error'); return; }
+  D.pettyCash = D.pettyCash || [];
+  D.pettyCash.push({ id: D.nextPetty++, date: today(), type: type, amount: amt, note: note });
+  save();
+  document.getElementById('pc-amt').value='';
+  document.getElementById('pc-note').value='';
+  renderPettyCash();
+  showToast('Petty cash entry added!');
+}
+function delPettyCash(id){
+  if(!confirm('Delete this entry?')) return;
+  D.pettyCash = (D.pettyCash||[]).filter(function(p){ return p.id!==id; });
+  save();
+  renderPettyCash();
+}
+
+// ── OPENING / CLOSING BALANCE ─────────────────────────────────────────
+function renderDayBalances(){
+  var tbody = document.getElementById('ob-tbody');
+  if(!tbody) return;
+  var list = (D.balances||[]).slice().sort(function(a,b){ return new Date(b.date)-new Date(a.date); });
+  if(!list.length){ tbody.innerHTML='<tr><td colspan="5" class="empty-state">No records yet</td></tr>'; return; }
+  var h='';
+  list.forEach(function(b){
+    var diff = (parseFloat(b.close)||0) - (parseFloat(b.open)||0);
+    h+='<tr><td class="mono" style="font-size:0.78rem">'+esc(b.date)+'</td>';
+    h+='<td class="mono">'+fmt(b.open)+'</td>';
+    h+='<td class="mono">'+fmt(b.close)+'</td>';
+    h+='<td class="mono'+(diff>=0?' text-green':' text-red')+'">'+(diff>=0?'+':'')+fmt(diff)+'</td>';
+    h+='<td><button class="btn btn-danger btn-sm" onclick="delDayBalance('+b.id+')">Del</button></td></tr>';
+  });
+  tbody.innerHTML=h;
+}
+function saveDayBalance(){
+  var date = document.getElementById('ob-date').value || today();
+  var open = parseFloat(document.getElementById('ob-open').value)||0;
+  var close = parseFloat(document.getElementById('ob-close').value)||0;
+  D.balances = D.balances || [];
+  var existing = D.balances.find(function(b){ return b.date===date; });
+  if(existing){ existing.open=open; existing.close=close; }
+  else{ D.balances.push({ id: D.nextBalance++, date: date, open: open, close: close }); }
+  save();
+  document.getElementById('ob-open').value='';
+  document.getElementById('ob-close').value='';
+  renderDayBalances();
+  showToast('Day balance saved!');
+}
+function delDayBalance(id){
+  if(!confirm('Delete this record?')) return;
+  D.balances = (D.balances||[]).filter(function(b){ return b.id!==id; });
+  save();
+  renderDayBalances();
 }
 
 // ── TAB NAVIGATION ────────────────────────────────────────────────────
@@ -2520,6 +2750,7 @@ function showTab(name, btn){
   if(name==='lowstock') renderLowStock();
   if(name==='categories') renderCategoryTable();
   if(name==='backup') renderBkStats();
+  if(name==='settings'){ renderPettyCash(); renderDayBalances(); var od=document.getElementById('ob-date'); if(od && !od.value) od.value=today(); }
 }
 
 function toggleHeader(){
@@ -3314,7 +3545,7 @@ function renderCustomers(){
 }
 
 // ── CREDITS ───────────────────────────────────────────────────────────
-function openCrForm(){
+function openCrForm(presetCustId){
   document.getElementById('cr-form').style.display='block';
   document.getElementById('cr-date').value=today();
   var s=document.getElementById('cr-cust');
@@ -3327,6 +3558,7 @@ function openCrForm(){
   document.getElementById('cr-amt').value='';
   document.getElementById('cr-bal-info').style.display='none';
   document.getElementById('cr-breakdown').style.display='none';
+  if(presetCustId!=null){ s.value=presetCustId; onCrCustChange(); }
   document.getElementById('cr-form').scrollIntoView({behavior:'smooth'});
 }
 function closeCrForm(){ document.getElementById('cr-form').style.display='none'; }
@@ -3407,23 +3639,58 @@ function savePayment(){
   }
 }
 
+var crHistCustId = null;
 function renderCredits(){
   var q=(document.getElementById('cr-search').value||'').toLowerCase();
-  var ft=document.getElementById('cr-filter').value;
   var tbody=document.getElementById('cr-tbody');
-  var list=D.credits.filter(function(c){ return (!q||c.custName.toLowerCase().indexOf(q)>-1)&&(!ft||c.type===ft); });
-  if(!list.length){ tbody.innerHTML='<tr><td colspan="8" class="empty-state">No records</td></tr>'; return; }
+  var custIds={};
+  (D.credits||[]).forEach(function(c){ custIds[c.custId]=true; });
+  D.customers.forEach(function(c){ if((c.outstanding||0)!==0) custIds[c.id]=true; });
+  var list=Object.keys(custIds).map(function(id){
+    return D.customers.find(function(x){ return String(x.id)===String(id); });
+  }).filter(function(c){ return c; });
+  if(q) list=list.filter(function(c){ return (c.name||'').toLowerCase().indexOf(q)>-1; });
+  list.sort(function(a,b){ return (b.outstanding||0)-(a.outstanding||0); });
+  if(!list.length){ tbody.innerHTML='<tr><td colspan="3" class="empty-state">No credit customers</td></tr>'; return; }
   var h='';
-  list.forEach(function(c){
-    h+='<tr><td class="mono" style="font-size:0.78rem">'+c.date+'</td><td style="font-weight:600">'+c.custName+'</td>';
-    h+='<td>'+(c.type==='credit'?'<span class="tag tag-red">Credit</span>':'<span class="tag tag-green">Payment</span>')+'</td>';
-    h+='<td class="mono'+(c.type==='credit'?' text-red':' text-green')+'">'+(c.type==='credit'?'-':'+')+fmt(c.amount)+'</td>';
-    h+='<td class="mono" style="font-size:0.78rem">'+c.billRef+'</td>';
-    h+='<td class="mono'+(c.balance>0?' text-red':'')+'">'+fmt(c.balance)+'</td>';
-    h+='<td style="font-size:0.78rem;color:var(--text3)">'+(c.note||'-')+'</td>';
-    h+='<td><button class="btn btn-danger btn-sm" onclick="delCredit('+c.id+')">Del</button></td></tr>';
+  list.forEach(function(c,idx){
+    h+='<tr style="cursor:pointer" onclick="openCustCreditHistory('+c.id+')">';
+    h+='<td>'+(idx+1)+'</td><td style="font-weight:600">'+esc(c.name)+'</td>';
+    h+='<td class="mono'+((c.outstanding||0)>0?' text-red':'')+'">'+fmt(c.outstanding||0)+'</td></tr>';
   });
   tbody.innerHTML=h;
+}
+function openCustCreditHistory(custId){
+  crHistCustId=custId;
+  var cust=D.customers.find(function(c){ return String(c.id)===String(custId); });
+  if(!cust) return;
+  document.getElementById('crh-name').textContent=cust.name;
+  document.getElementById('crh-out').textContent=fmt(cust.outstanding||0);
+  var list=(D.credits||[]).filter(function(c){ return String(c.custId)===String(custId); })
+    .sort(function(a,b){ return new Date(b.date)-new Date(a.date); });
+  var tbody=document.getElementById('crh-tbody');
+  if(!list.length){ tbody.innerHTML='<tr><td colspan="7" class="empty-state">No history</td></tr>'; }
+  else{
+    var h='';
+    list.forEach(function(c){
+      h+='<tr><td class="mono" style="font-size:0.78rem">'+c.date+'</td>';
+      h+='<td>'+(c.type==='credit'?'<span class="tag tag-red">Credit</span>':'<span class="tag tag-green">Payment</span>')+'</td>';
+      h+='<td class="mono'+(c.type==='credit'?' text-red':' text-green')+'">'+(c.type==='credit'?'-':'+')+fmt(c.amount)+'</td>';
+      h+='<td class="mono" style="font-size:0.78rem">'+(c.billRef||'-')+'</td>';
+      h+='<td class="mono'+(c.balance>0?' text-red':'')+'">'+fmt(c.balance)+'</td>';
+      h+='<td style="font-size:0.78rem;color:var(--text3)">'+(c.note||'-')+'</td>';
+      h+='<td><button class="btn btn-danger btn-sm" onclick="delCreditFromHistory('+c.id+')">Del</button></td></tr>';
+    });
+    tbody.innerHTML=h;
+  }
+  document.getElementById('cr-history-modal').classList.add('show');
+}
+function closeCustCreditHistory(){ document.getElementById('cr-history-modal').classList.remove('show'); crHistCustId=null; }
+function delCreditFromHistory(id){
+  if(!confirm('Delete?')) return;
+  D.credits=D.credits.filter(function(c){ return c.id!==id; });
+  save(); renderCredits(); updateCrStats();
+  if(crHistCustId!=null) openCustCreditHistory(crHistCustId);
 }
 function delCredit(id){ if(!confirm('Delete?')) return; D.credits=D.credits.filter(function(c){ return c.id!==id; }); save(); renderCredits(); updateCrStats(); }
 function updateCrStats(){
